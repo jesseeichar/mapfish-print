@@ -1,0 +1,3 @@
+[submodule "examples/release"]
+	path = examples/release
+	url = https://github.com/mapfish/mapfish-print-release.git

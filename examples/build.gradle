@@ -1,102 +1,166 @@
-apply plugin: 'war'
-apply plugin: 'jetty'
+import org.gradle.internal.jvm.Jvm
 
 repositories {
     maven {url "http://repo.boundlessgeo.com/main"}
     maven {url "http://maven.restlet.org"}
 }
+def jettySrc = "$projectDir/release/jetty"
+def jettyOut = "$buildDir/jetty"
+def geoserverDir = "$jettyOut/webapps/geoserver"
+def geoserverDataDir = geoserverDir+"/data"
+def coreWar = project(":core").tasks['war']
 
-configurations {
-    geoserver
-}
 
 dependencies {
-    geoserver ('org.geoserver.web:web-app:2.4.8') {
-        transitive = false;
-    }
-    testCompile (project(':core'))
+    testCompile(project(':core'))
 }
 
-def geoserverDir = "$buildDir/geoserver"
-ext.geoserverDir = geoserverDir
-def geoserverDataDir = geoserverDir+"/data"
+task copyJetty (type: Copy) {
+    description "Copy Jetty and GeoServer into a directory that we can zip as a distribution bundle or use for jettyRun"
 
-task copyTestServerSpecificFiles (type: Copy) {
-    description "Copy files from src/main/webapp into the GeoServer directory to customize the testServer"
-    from fileTree("src/main/webapp") {include '**'}
+    from fileTree(jettySrc)
+//        from "$projectDir/RUN_SERVER_README.TXT"
+    exclude "README.TXT"
+    exclude ("webapps/geoserver/WEB-INF/web.xml")
+    exclude ("webapps/geoserver/data/logging.xml")
+    exclude ("webapps/geoserver/**/*.qix")
+    into (jettyOut)
+}
 
+task copyGeoserverFiles (type: Copy) {
+    description "Customize Geoserver with files from src/main/webapp"
+    dependsOn copyJetty
+
+    from fileTree("src/main/webapp")
     into geoserverDir
 }
 
-task extractGeoserver (type: Copy) {
-    description "Extract the Geoserver web app jar and files in src/main/webapp into a directory to use for the jettyRun task"
-    dependsOn tasks['copyTestServerSpecificFiles']
-    
-    from zipTree(configurations.geoserver.singleFile)
+task addGeoserverLoggingFile {
+    description "Configure Geoserver logging to make it silent"
+    dependsOn copyJetty
 
-    into geoserverDir
-}
-
-extractGeoserver.doLast {
-    def offLoggingConfig = new File(geoserverDataDir, "logs/OFF_LOGGING.properties")
-    logger.info("Writing an updated Geoserver log configuration to suppress geoserver output")
-    new File(geoserverDataDir, "logging.xml").withWriter "UTF-8", { writer ->
-        def builder = new groovy.xml.MarkupBuilder(writer)
-        builder.logging {
-            level "OFF_LOGGING.properties"
-            location "${geoserverDir}/geoserver.log"
-            stdOutLogging "false"
+    doLast {
+        def offLoggingConfig = new File(geoserverDataDir, "logs/OFF_LOGGING.properties")
+        logger.info("Writing an updated Geoserver log configuration to suppress geoserver output")
+        new File(geoserverDataDir, "logging.xml").withWriter "UTF-8", { writer ->
+            def builder = new groovy.xml.MarkupBuilder(writer)
+            builder.logging {
+                level "OFF_LOGGING.properties"
+                location "${geoserverDir}/geoserver.log"
+                stdOutLogging "false"
+            }
         }
+        offLoggingConfig.parentFile.mkdirs()
+        offLoggingConfig.setText("log4j.debug=FALSE\nlog4j.rootLogger=OFF", "UTF-8")
     }
-    offLoggingConfig.parentFile.mkdirs()
-    offLoggingConfig.setText("log4j.debug=FALSE\nlog4j.rootLogger=OFF", "UTF-8")
 }
 
-jettyRun {
-    dependsOn ':core:jettyRunWarBackground', tasks['extractGeoserver']
+task copyMapfishPrint (type: Copy) {
+    description "Copy Mapfish print webapp into the jetty that we will use as a distribution bundle and jettyRun"
+    dependsOn coreWar, copyJetty
+
+    from zipTree(coreWar.archivePath)
+    into ("$jettyOut/webapps/mapfish-print")
+}
+
+
+task buildServer {
+    dependsOn copyGeoserverFiles, copyMapfishPrint, addGeoserverLoggingFile
+}
+
+task buildZip(type: Zip) {
+    dependsOn buildServer
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    destinationDir = file("$buildDir/dists")
+    baseName = project.projectName
+    version = project.version
+    def folder = "$baseName-$version"
+    into (folder) {
+        from "$jettyOut"
+    }
+}
+
+build.dependsOn buildZip
+
+task jettyRun (type: JavaExec) {
+    dependsOn tasks['buildServer']
 
     description 'Start the Geoserver Test Server in foreground mode for running local tests'
-    httpPort = 9876
-    daemon = Boolean.parseBoolean(System.getProperty("jettyDaemon", "false"))
-    contextPath = 'e2egeoserver'
-    webAppSourceDirectory = file(geoserverDir)
-    stopKey = "e2e-tests-geoserver"
-    stopPort = 9877
-    reload = 'manual'
+    classpath "$jettySrc/start.jar"
+    workingDir jettyOut
+    main = "org.eclipse.jetty.start.Main"
+    maxHeapSize = "512M"
+    jvmArgs ("-XX:MaxPermSize=256M")
 }
 
-task jettyRunBackground (dependsOn: jettyRun) << {
-    description 'Start Geoserver Test Server in background mode for running integration tests'
-    logger.info("Finished test server in daemon (background) mode")
-}
-
-gradle.taskGraph.whenReady {taskGraph ->
-    if (taskGraph.hasTask(':core:jettyRun')) {
-        jettyRun.disabled = true
-    }
-    if (taskGraph.hasTask(jettyRunBackground)) {
-        jettyRun.doFirst{
-            logger.info("Running test server in daemon (background) mode")
-        }
-
-        jettyRun.daemon = true;
-    } else {
-        jettyRun.doFirst{
-            logger.info("Running test server in non-daemon (foreground) mode")
-        }
-    }
-}
-
-String interactiveExpression = '**/*InteractiveTest.class'
 test {
-    dependsOn ':core:compileJava', 'testClasses', 'jettyRunBackground'
+    dependsOn ':core:compileJava', 'testClasses'
     description 'Runs all automated e2e (integration) tests.'
     maxParallelForks = Runtime.getRuntime().availableProcessors();
-    exclude interactiveExpression
-}
+//    exclude interactiveExpression
 
-task interactiveTest (dependsOn: test, type: Test) {
-    description 'Runs all automated e2e (integration) tests as well as the tests that require user input for tests verification.'
-    maxParallelForks = 1;
-    include interactiveExpression
+    java.lang.Process process = null
+    doFirst {
+        def cmd = [jettyRun.executable]
+        cmd.addAll(jettyRun.allJvmArgs)
+        cmd.addAll(jettyRun.main)
+//        process = cmd.execute()
+        def builder = new ProcessBuilder(cmd)
+        builder.directory(jettyRun.workingDir)
+
+
+        logger.lifecycle("Starting test server: " + cmd.join(" ") + " in directory: " + jettyRun.workingDir)
+        process = builder.start()
+        process.consumeProcessOutput(System.out, System.err)
+        addShutdownHook {
+            if (process != null) {
+                process.destroy();
+            }
+        }
+
+        def mapfishPrint = new URL("http://localhost:8080/mapfish-print/print/capabilities.json")
+        def geoserver = new URL("http://localhost:8080/web/")
+        def isRunning = { url ->
+            def HttpURLConnection connection = null
+            try {
+                connection = url.openConnection();
+                connection.connect()
+                if (connection.responseCode == 200) {
+                    return true
+                }
+            } catch (IOException e) {
+                // continue
+            } finally {
+                if (connection != null) {
+                    connection.disconnect()
+                }
+            }
+
+            return false
+        }
+        def startTime = System.currentTimeMillis();
+        def timeSinceLastUpdate = System.currentTimeMillis()
+        while (!isRunning(mapfishPrint) && !isRunning(geoserver)) {
+            def elapsed = System.currentTimeMillis() - timeSinceLastUpdate
+
+            if (System.currentTimeMillis() - startTime > 120000) {
+                logger.lifecycle("Failed to start server after waiting 2 minutes, try running ./gradlew :examples:jettyRun to debug");
+            }
+            if (elapsed > 5000) {
+                timeSinceLastUpdate = System.currentTimeMillis()
+                println("Test Server still starting...")
+            }
+            Thread.sleep(500)
+        }
+        logger.lifecycle("Test server started")
+    }
+
+    doLast {
+        logger.lifecycle("Shutting test server")
+        process.destroy()
+        process.in.close()
+        process.out.close()
+        process.err.close()
+    }
 }

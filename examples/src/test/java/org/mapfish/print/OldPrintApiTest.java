@@ -115,11 +115,11 @@ public class OldPrintApiTest extends AbstractApiTest {
         response.close();
         
         String getUrl = result.getString("getURL");
-        final String prefix = "/print-servlet/print/dep/";
+        final String prefix = "/mapfish-print/print/dep/";
         assertTrue(String.format("Start of url is not as expected: \n'%s'\n'%s'", prefix, getUrl), getUrl.startsWith(prefix));
         assertTrue("Report url should end with .printout: " + getUrl, getUrl.endsWith(".printout"));
           
-        ClientHttpRequest requestGetPdf = getRequest(getUrl.replace("/print-servlet/", ""), HttpMethod.GET);
+        ClientHttpRequest requestGetPdf = getRequest(getUrl.replace("/mapfish-print/", ""), HttpMethod.GET);
         response = requestGetPdf.execute();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(new MediaType("application", "pdf"), response.getHeaders().getContentType());
@@ -144,7 +144,7 @@ public class OldPrintApiTest extends AbstractApiTest {
     @Test
     public void testCreate_Var() throws Exception {
         String url = "create.json?url=" +
-                URLEncoder.encode("http://localhost:8080/print-servlet/print/dep/create.json", Constants.DEFAULT_ENCODING);
+                URLEncoder.encode("http://localhost:8080/mapfish-print/print/dep/create.json", Constants.DEFAULT_ENCODING);
         ClientHttpRequest request = getPrintRequest(url, HttpMethod.POST);
         setPrintSpec(getPrintSpec("examples/verboseExample/old-api-requestData.json"), request);
         response = request.execute();
@@ -155,7 +155,7 @@ public class OldPrintApiTest extends AbstractApiTest {
         response.close();
         
         String getUrl = result.getString("getURL");
-        final String prefix = "http://localhost:8080/print-servlet/print/dep/";
+        final String prefix = "http://localhost:8080/mapfish-print/print/dep/";
         assertTrue(String.format("Start of url is not as expected: \n'%s'\n'%s'", prefix, getUrl), getUrl.startsWith(prefix));
         assertTrue("Report url should end with .printout: " + getUrl, getUrl.endsWith(".printout"));
 
@@ -239,7 +239,7 @@ public class OldPrintApiTest extends AbstractApiTest {
     @Test
     public void testCreate_Url2() throws Exception {
         String url = "create.json?url=" +
-                     URLEncoder.encode("http://localhost:8080/print-servlet/print/dep", Constants.DEFAULT_ENCODING);
+                     URLEncoder.encode("http://localhost:8080/mapfish-print/print/dep", Constants.DEFAULT_ENCODING);
         ClientHttpRequest request = getPrintRequest(url, HttpMethod.POST);
         setPrintSpec(getPrintSpec("examples/verboseExample/old-api-requestData.json"), request);
         response = request.execute();
@@ -250,7 +250,7 @@ public class OldPrintApiTest extends AbstractApiTest {
         response.close();
 
         String getUrl = result.getString("getURL");
-        assertTrue(getUrl.startsWith("http://localhost:8080/print-servlet/print/dep/"));
+        assertTrue(getUrl.startsWith("http://localhost:8080/mapfish-print/print/dep/"));
         assertTrue("Report url should end with .printout: " + getUrl, getUrl.endsWith(".printout"));
 
         ClientHttpRequest requestGetPdf = httpRequestFactory.createRequest(new URI(getUrl), HttpMethod.GET);

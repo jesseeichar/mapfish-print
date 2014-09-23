@@ -253,8 +253,8 @@ public class PrintApiTest extends AbstractApiTest {
         String ref = createResult.getString(MapPrinterServlet.JSON_PRINT_JOB_REF);
         String statusUrl = createResult.getString(MapPrinterServlet.JSON_STATUS_LINK);
         String downloadUrl = createResult.getString(MapPrinterServlet.JSON_DOWNLOAD_LINK);
-        assertEquals("/print-servlet/print/status/" + ref + ".json", statusUrl);
-        assertEquals("/print-servlet/print/report/" + ref, downloadUrl);
+        assertEquals("/mapfish-print/print/status/" + ref + ".json", statusUrl);
+        assertEquals("/mapfish-print/print/report/" + ref, downloadUrl);
         response.close();
 
         // check status
