@@ -40,9 +40,14 @@ task addGeoserverLoggingFile {
     dependsOn copyJetty
 
     doLast {
+        logger.lifecycle("Writing an updated Geoserver log configuration to suppress geoserver output")
+
         def offLoggingConfig = new File(geoserverDataDir, "logs/OFF_LOGGING.properties")
-        logger.info("Writing an updated Geoserver log configuration to suppress geoserver output")
-        new File(geoserverDataDir, "logging.xml").withWriter "UTF-8", { writer ->
+        offLoggingConfig.parentFile.mkdirs()
+        def loggingXml = new File(geoserverDataDir, "logging.xml")
+        loggingXml.parentFile.mkdirs()
+
+        loggingXml.withWriter "UTF-8", { writer ->
             def builder = new groovy.xml.MarkupBuilder(writer)
             builder.logging {
                 level "OFF_LOGGING.properties"
@@ -50,7 +55,6 @@ task addGeoserverLoggingFile {
                 stdOutLogging "false"
             }
         }
-        offLoggingConfig.parentFile.mkdirs()
         offLoggingConfig.setText("log4j.debug=FALSE\nlog4j.rootLogger=OFF", "UTF-8")
     }
 }
