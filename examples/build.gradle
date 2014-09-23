@@ -91,7 +91,20 @@ task jettyRun (type: JavaExec) {
     workingDir jettyOut
     main = "org.eclipse.jetty.start.Main"
     maxHeapSize = "512M"
-    jvmArgs ("-XX:MaxPermSize=256M")
+    jvmArgs "-XX:MaxPermSize=256M"
+
+
+    def debug = System.getProperty("debugJetty")
+    def debugPort = System.getProperty("debugJettyPort")
+    if (debugPort != null) {
+        debug = "true"
+    } else {
+        debugPort = 5005
+    }
+
+    if ("true" == debug || "" == debug) {
+        jvmArgs "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=$debugPort"
+    }
 }
 
 test {
@@ -149,7 +162,7 @@ test {
             }
             if (elapsed > 5000) {
                 timeSinceLastUpdate = System.currentTimeMillis()
-                println("Test Server still starting...")
+                logger.info("Test Server still starting...")
             }
             Thread.sleep(500)
         }
