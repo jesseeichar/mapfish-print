@@ -652,6 +652,29 @@ public class MapPrinterServletTest extends AbstractMapfishSpringTest {
         assertCorrectResponse(servletCreateResponse);
     }
 
+    @Test(timeout = 60000)
+    public void testCreateReportAndGet_MultipleParams() throws Exception {
+        setUpConfigFiles();
+
+        final MockHttpServletRequest servletCreateRequest = new MockHttpServletRequest();
+        final MockHttpServletResponse servletCreateResponse = new MockHttpServletResponse();
+
+        final String encodedRequest = URLEncoder.encode(loadRequestDataAsString(), Constants.DEFAULT_ENCODING);
+        String requestData = "otherParam=value&spec=" + encodedRequest;
+
+        this.servlet.createReportAndGetNoAppId("png", requestData, false, servletCreateRequest, servletCreateResponse);
+        assertEquals(HttpStatus.OK.value(), servletCreateResponse.getStatus());
+
+        assertCorrectResponse(servletCreateResponse);
+
+        requestData = "spec="+ encodedRequest + "&otherParam=value&";
+
+        this.servlet.createReportAndGetNoAppId("png", requestData, false, servletCreateRequest, servletCreateResponse);
+        assertEquals(HttpStatus.OK.value(), servletCreateResponse.getStatus());
+
+        assertCorrectResponse(servletCreateResponse);
+    }
+
     private String getFormEncodedRequestData() throws IOException {
         return "spec=" + URLEncoder.encode(loadRequestDataAsString(), Constants.DEFAULT_ENCODING);
     }

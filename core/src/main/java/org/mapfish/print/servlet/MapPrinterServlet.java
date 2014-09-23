@@ -786,8 +786,18 @@ public class MapPrinterServlet extends BaseMapServlet {
                 return null;
             }
 
+            final int paramPrefixLength = "spec=".length();
             String requestData = requestDataRaw;
-            if (!requestData.startsWith("spec=") && !requestData.startsWith("{")) {
+            // if form has more than just a spec parameter then extract spec parameter
+            int specIndex = requestData.indexOf("spec=%7B");
+            if (specIndex > 0) {
+                int endIndex = requestData.indexOf('&', specIndex);
+                if (endIndex < 0) {
+                    endIndex = requestData.length();
+                }
+                requestData = requestDataRaw.substring(specIndex + paramPrefixLength, endIndex);
+            }
+            if (!requestData.startsWith("{")) {
                 try {
                     requestData = URLDecoder.decode(requestData, Constants.DEFAULT_ENCODING);
                 } catch (UnsupportedEncodingException e) {
@@ -795,9 +805,16 @@ public class MapPrinterServlet extends BaseMapServlet {
                 }
             }
             if (requestData.startsWith("spec=")) {
-                requestData = requestData.substring("spec=".length());
+                requestData = requestData.substring(paramPrefixLength);
             }
 
+            if (requestData.startsWith("%7B")) {
+                try {
+                    requestData = URLDecoder.decode(requestData, Constants.DEFAULT_ENCODING);
+                } catch (UnsupportedEncodingException e) {
+                    throw ExceptionUtils.getRuntimeException(e);
+                }
+            }
 
             try {
                 return MapPrinter.parseSpec(requestData);
