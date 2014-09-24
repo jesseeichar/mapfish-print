@@ -42,6 +42,7 @@ configure(subprojects.findAll {['core', 'examples'].contains(it.name)}) {
     checkstyleTest.enabled = false
 
     findbugs {
+        toolVersion = "2.0.3"
         ignoreFailures = false
         reportsDir = file("$project.buildDir/reports/findbugsReports")
         effort = "max"
