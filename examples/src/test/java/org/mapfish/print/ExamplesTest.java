@@ -21,8 +21,8 @@ package org.mapfish.print;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closer;
 import com.google.common.io.Files;
-
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,11 +42,12 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
-
 import javax.imageio.ImageIO;
 
 import static org.junit.Assert.fail;
@@ -153,6 +154,19 @@ public class ExamplesTest {
             final File configFile = new File(example, CONFIG_FILE);
             this.mapPrinter.setConfiguration(configFile);
 
+            Properties expectedSimilarity = new Properties();
+            File expectedOutputDir = new File(example, "expected_output");
+            Closer closer = Closer.create();
+            try {
+                File file = new File(expectedOutputDir, "image-similarity.properties");
+                if (file.isFile()) {
+                    expectedSimilarity.load(closer.register(new FileInputStream(file)));
+                }
+            } finally {
+                closer.close();
+            }
+
+
             for (File requestFile : Files.fileTreeTraverser().children(example)) {
                 if (!requestFile.isFile() ||  !configFilter.matcher(example.getName()).matches()) {
                     continue;
@@ -197,15 +211,10 @@ public class ExamplesTest {
 //                        outDir.mkdirs();
 //                        ImageIO.write(image, "png", new File(outDir, requestFile.getName().replace(".json", ".png")));
 
-                        File expectedOutputDir = new File(example, "expected_output");
                         File expectedOutput = new File(expectedOutputDir, requestFile.getName().replace(".json", ".png"));
-                        int similarity = 50;
-                        File file = new File(expectedOutputDir, "image-similarity.txt");
-                        if (file.isFile()) {
-                            String similarityString = Files.toString(file, Constants.DEFAULT_CHARSET);
-                            similarity = Integer.parseInt(similarityString.trim());
-                        }
-                        new ImageSimilarity(image, 50).assertSimilarity(expectedOutput, similarity);
+                        String similarity = expectedSimilarity.getProperty(Files.getNameWithoutExtension(requestFile.getName()), "50");
+                        int iSimilarity = Integer.parseInt(similarity);
+                        new ImageSimilarity(image, 50).assertSimilarity(expectedOutput, iSimilarity);
                     }
                 } catch (Throwable e) {
                     errors.put(example.getName() + " (" + requestFile.getName() + ")", e);

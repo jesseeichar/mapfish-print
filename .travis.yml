@@ -1,9 +1,9 @@
 language: java
 
 jdk:
-- oraclejdk7
-- openjdk6
-- openjdk7
+  - oraclejdk7
+  - openjdk6
+  - openjdk7
+  - oraclejdk8
 
-script:
-- ./gradlew --no-color build
+script: ./gradlew --no-color build
