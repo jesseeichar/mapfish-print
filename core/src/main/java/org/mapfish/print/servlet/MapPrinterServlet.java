@@ -788,7 +788,7 @@ public class MapPrinterServlet extends BaseMapServlet {
 
             final int paramPrefixLength = "spec=".length();
             String requestData = requestDataRaw;
-            // if form has more than just a spec parameter then extract spec parameter
+            // if form has more than just a spec parameter then extract FIRST spec parameter
             int specIndex = requestData.indexOf("spec=%7B");
             if (specIndex > 0) {
                 int endIndex = requestData.indexOf('&', specIndex);
