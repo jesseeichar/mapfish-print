@@ -34,6 +34,8 @@ import org.mapfish.print.servlet.MapPrinterServlet;
 import org.mapfish.print.servlet.oldapi.OldAPIRequestConverter;
 import org.mapfish.print.test.util.ImageSimilarity;
 import org.mapfish.print.wrapper.json.PJsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -71,6 +73,8 @@ import static org.mapfish.print.servlet.MapPrinterServlet.JSON_REQUEST_HEADERS;
         ExamplesTest.TEST_SPRING_XML
 })
 public class ExamplesTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExamplesTest.class);
+
     public static final String DEFAULT_SPRING_XML = "classpath:mapfish-spring-application-context.xml";
     public static final String TEST_SPRING_XML = "classpath:test-http-request-factory-application-context.xml";
 
@@ -144,6 +148,7 @@ public class ExamplesTest {
                 errorReport.append('\n');
             }
             errorReport.append("\n\n");
+
             fail(errorReport.toString());
         }
     }
@@ -153,6 +158,10 @@ public class ExamplesTest {
         try {
             final File configFile = new File(example, CONFIG_FILE);
             this.mapPrinter.setConfiguration(configFile);
+
+            if (!hasRequestFile(example)) {
+                throw new AssertionError("Example: '" + example.getName() + "' does not have any request data files.");
+            }
 
             Properties expectedSimilarity = new Properties();
             File expectedOutputDir = new File(example, "expected_output");
@@ -172,7 +181,7 @@ public class ExamplesTest {
                     continue;
                 }
                 try {
-                    if (requestFile.getName().matches(REQUEST_DATA_FILE) || requestFile.getName().matches(OLD_API_REQUEST_DATA_FILE)) {
+                    if (isRequestDataFile(requestFile)) {
                         String requestData = Files.asCharSource(requestFile, Charset.forName(Constants.DEFAULT_ENCODING)).read();
 
                         final PJsonObject jsonSpec;
@@ -215,7 +224,7 @@ public class ExamplesTest {
                         String similarity = expectedSimilarity.getProperty(Files.getNameWithoutExtension(requestFile.getName()), "50");
                         int iSimilarity = Integer.parseInt(similarity);
                         new ImageSimilarity(image, 50).assertSimilarity(expectedOutput, iSimilarity);
-                    }
+                        }
                 } catch (Throwable e) {
                     errors.put(example.getName() + " (" + requestFile.getName() + ")", e);
                 }
@@ -225,6 +234,19 @@ public class ExamplesTest {
         }
 
         return testsRan;
+    }
+
+    private boolean hasRequestFile(File example) {
+        for (File file : Files.fileTreeTraverser().children(example)) {
+            if (isRequestDataFile(file)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isRequestDataFile(File requestFile) {
+        return requestFile.getName().matches(REQUEST_DATA_FILE) || requestFile.getName().matches(OLD_API_REQUEST_DATA_FILE);
     }
 
 

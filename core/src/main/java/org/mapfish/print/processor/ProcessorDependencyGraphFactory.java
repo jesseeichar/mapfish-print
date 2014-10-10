@@ -23,6 +23,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Objects;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.vividsolutions.jts.util.Assert;
@@ -59,7 +60,7 @@ public final class ProcessorDependencyGraphFactory {
 
     /**
      * Sets the external dependencies between processors. Usually configured in 
-     * {@link mapfish-spring-processors.xml}.
+     * {@link /mapfish-spring-processors.xml}.
      * @param dependencies the dependencies
      */
     public void setDependencies(final List<ProcessorDependency> dependencies) {
@@ -76,12 +77,15 @@ public final class ProcessorDependencyGraphFactory {
     public ProcessorDependencyGraph build(final List<? extends Processor> processors) {
         ProcessorDependencyGraph graph = new ProcessorDependencyGraph();
 
-        final Map<String, ProcessorGraphNode<Object, Object>> provideBy = new HashMap<String, ProcessorGraphNode<Object, Object>>();
+        final Map<String, ProcessorGraphNode<Object, Object>> provideBy =
+                new HashMap<String, ProcessorGraphNode<Object, Object>>();
         final Map<String, Class<?>> outputTypes = new HashMap<String, Class<?>>();
-        final List<ProcessorGraphNode<Object, Object>> nodes = new ArrayList<ProcessorGraphNode<Object, Object>>(processors.size());
+        final List<ProcessorGraphNode<Object, Object>> nodes =
+                new ArrayList<ProcessorGraphNode<Object, Object>>(processors.size());
 
         for (Processor<Object, Object> processor : processors) {
-            final ProcessorGraphNode<Object, Object> node = new ProcessorGraphNode<Object, Object>(processor, this.metricRegistry);
+            final ProcessorGraphNode<Object, Object> node =
+                    new ProcessorGraphNode<Object, Object>(processor, this.metricRegistry);
             for (OutputValue value : getOutputValues(node)) {
                 String outputName = value.getName();
                 if (provideBy.containsKey(outputName)) {
@@ -103,12 +107,19 @@ public final class ProcessorDependencyGraphFactory {
             nodes.add(node);
         }
 
+        ArrayList<ProcessorDependency> allDependencies = Lists.newArrayList(this.dependencies);
+        for (ProcessorGraphNode<Object, Object> node : nodes) {
+            if (node.getProcessor() instanceof CustomDependencies) {
+                CustomDependencies custom = (CustomDependencies) node.getProcessor();
+                allDependencies.addAll(custom.createDependencies(nodes));
+            }
+        }
         final SetMultimap<ProcessorGraphNode<Object, Object>, InputValue> inputsForNodes = cacheInputsForNodes(nodes);
         for (ProcessorGraphNode<Object, Object> node : nodes) {
             final Set<InputValue> inputs = inputsForNodes.get(node);
 
             // check explicit, external dependencies between nodes
-            checkExternalDependencies(node, nodes);
+            checkExternalDependencies(allDependencies, node, nodes);
 
             // check input/output value dependencies
             for (InputValue input : inputs) {
@@ -147,9 +158,10 @@ public final class ProcessorDependencyGraphFactory {
     }
 
     private void checkExternalDependencies(
+            final List<ProcessorDependency> allDependencies,
             final ProcessorGraphNode<Object, Object> node,
             final List<ProcessorGraphNode<Object, Object>> nodes) {
-        for (ProcessorDependency dependency : this.dependencies) {
+        for (ProcessorDependency dependency : allDependencies) {
             if (dependency.getRequired().equals(node.getProcessor().getClass())) {
                 // this node is required by another processor type, let's see if there
                 // is an actual processor of this type
@@ -297,11 +309,8 @@ public final class ProcessorDependencyGraphFactory {
             // if the field is annotated with @DebugValue, it can be renamed automatically in a
             // mapping in case of a conflict.
             final boolean canBeRenamed = field.getAnnotation(InternalValue.class) != null;
-            if (!outputMapper.containsKey(field.getName())) {
-                values.add(new OutputValue(field.getName(), canBeRenamed, field.getType()));
-            } else {
-                values.add(new OutputValue(outputMapper.get(field.getName()), canBeRenamed, field.getType()));
-            }
+            String name = ProcessorUtils.getOutputValueName(node.getProcessor().getOutputPrefix(), outputMapper, field);
+            values.add(new OutputValue(name, canBeRenamed, field.getType()));
         }
 
         return values;

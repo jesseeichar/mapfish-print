@@ -24,10 +24,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONWriter;
 import org.junit.Test;
-import org.mapfish.print.AbstractMapfishSpringTest;
 import org.mapfish.print.attribute.ReflectiveAttribute;
 import org.mapfish.print.config.Template;
 import org.mapfish.print.parser.MapfishParser;
+import org.mapfish.print.test.util.AttributeTesting;
 
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -72,7 +72,7 @@ public class GenericMapAttributeTest {
         assertTrue(json.toString(2), json.has(JSON_CLIENT_INFO));
 
         final JSONObject required = json.getJSONObject(JSON_CLIENT_PARAMS);
-        assertEquals(required.toString(2), 12, required.length());
+        assertEquals(required.toString(2), 13, required.length());
 
         assertElem(required, "requiredElem", "int", null, false);
         assertElem(required, "pArray", "array", null, false);
@@ -84,6 +84,7 @@ public class GenericMapAttributeTest {
         assertElem(required, "useNearestScale", "boolean", "null", false);
         assertElem(required, "useAdjustBounds", "boolean", "null", false);
         assertElem(required, "longitudeFirst", "boolean", "null", false);
+        assertElem(required, "dpiSensitiveStyle", "boolean", "true", false);
         assertEmbedded(required, false, "embedded");
         assertEmbedded(required, true, "optionalEmbedded");
 
@@ -101,7 +102,7 @@ public class GenericMapAttributeTest {
     @Test
     public void testPrintClientConfigWithDefaults() throws Exception {
         final TestMapAttribute att = new TestMapAttribute();
-        AbstractMapfishSpringTest.configureAttributeForTesting(att);
+        AttributeTesting.configureAttributeForTesting(att);
 
         Map<String, Object> defaultValue = Maps.newHashMap();
         defaultValue.put("rotation", 1.0);
@@ -118,7 +119,7 @@ public class GenericMapAttributeTest {
         JSONObject json = new JSONObject(stringWriter.toString());
 
         final JSONObject required = json.getJSONObject(JSON_CLIENT_PARAMS);
-        assertEquals(12, required.length());
+        assertEquals(13, required.length());
 
         assertElem(required, "rotation", "double", "1", false);
         JSONObject embeddedDefault = required.getJSONObject("embedded").getJSONObject(JSON_ATTRIBUTE_DEFAULT);

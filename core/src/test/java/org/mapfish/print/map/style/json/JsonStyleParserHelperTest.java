@@ -57,7 +57,6 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
 import javax.imageio.ImageIO;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -276,7 +275,7 @@ public class JsonStyleParserHelperTest {
         assertEquals(1, graphic.graphicalSymbols().size());
         Mark mark = (Mark) graphic.graphicalSymbols().get(0);
 
-        assertEquals("square", valueOf(mark.getWellKnownName()));
+        assertEquals("circle", valueOf(mark.getWellKnownName()));
         assertNotNull(mark.getFill());
         assertNotNull(mark.getStroke());
     }

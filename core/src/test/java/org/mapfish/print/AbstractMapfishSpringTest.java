@@ -22,11 +22,7 @@ package org.mapfish.print;
 import com.google.common.io.Files;
 import org.geotools.referencing.CRS;
 import org.junit.runner.RunWith;
-import org.mapfish.print.attribute.Attribute;
-import org.mapfish.print.attribute.NorthArrowAttribute;
-import org.mapfish.print.attribute.ScalebarAttribute;
 import org.mapfish.print.attribute.map.CenterScaleMapBounds;
-import org.mapfish.print.attribute.map.GenericMapAttribute;
 import org.mapfish.print.attribute.map.MapfishMapContext;
 import org.mapfish.print.config.WorkingDirectories;
 import org.mapfish.print.map.Scale;
@@ -117,30 +113,10 @@ public abstract class AbstractMapfishSpringTest {
     public static MapfishMapContext createTestMapContext() {
         try {
             final CenterScaleMapBounds bounds = new CenterScaleMapBounds(CRS.decode("CRS:84"), 0, 0, new Scale(30000));
-            return new MapfishMapContext(bounds, new Dimension(500,500), 0, 72, null);
+            return new MapfishMapContext(bounds, new Dimension(500,500), 0, 72, Constants.PDF_DPI, null, true);
         } catch (Throwable e) {
             throw new Error(e);
         }
     }
 
-    /**
-     * A few attributes will throw exceptions if not initialized this method can be called when an attribute
-     * needs testing but the test is generic and does not necessarily want or need to know the specific
-     * type of attribute and its properties.
-     */
-    public static void configureAttributeForTesting(Attribute att) {
-        if (att instanceof GenericMapAttribute) {
-            GenericMapAttribute<?> genericMapAttribute = (GenericMapAttribute<?>) att;
-            genericMapAttribute.setWidth(500);
-            genericMapAttribute.setHeight(500);
-            genericMapAttribute.setMaxDpi(400.0);
-        } else if (att instanceof ScalebarAttribute) {
-            ScalebarAttribute scalebarAttribute = (ScalebarAttribute) att;
-            scalebarAttribute.setWidth(300);
-            scalebarAttribute.setHeight(120);
-        } else if (att instanceof NorthArrowAttribute) {
-            NorthArrowAttribute northArrowAttribute = (NorthArrowAttribute) att;
-            northArrowAttribute.setSize(50);
-        }
-    }
 }

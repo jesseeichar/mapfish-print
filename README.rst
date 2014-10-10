@@ -1,9 +1,8 @@
-.. image:: https://magnum.travis-ci.com/camptocamp/mapfish-printV3.svg?token=MAvNLXTm92VaWzkhpFvd&branch=development   
-   :target: https://magnum.travis-ci.com/camptocamp/mapfish-printV3
-
+.. image:: https://travis-ci.org/camptocamp/mapfish-printV3.svg?branch=development
+    :target: https://travis-ci.org/camptocamp/mapfish-printV3
 
 Please read the documentation available here:
-http://trac.mapfish.org/trac/mapfish/wiki/PrintModuleDoc
+http://mapfish.github.io/mapfish-print/#/overview
 
 
 Build
@@ -17,6 +16,16 @@ Execute the following command():
 
 This will build three artifacts:  print-servlet-xxx.war, print-lib.jar, print-standalone.jar
 
+The `build` also builds the documentation in the `docs/build/site` folder.  To deploy the documentation it should simply be copied to the gh-pages
+branch and then committed github will automatically build the updated site at: http://mapfish.github.io/mapfish-print/#/overview
+
+If you only want to build the docs simply run
+
+.. code::
+
+  > ./gradlew docs:build
+
+or run buld in the docs directory
 
 Deploy
 ------
