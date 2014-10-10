@@ -163,6 +163,7 @@ test {
 
             if (System.currentTimeMillis() - startTime > 120000) {
                 logger.lifecycle("Failed to start server after waiting 2 minutes, try running ./gradlew :examples:jettyRun to debug");
+                return;
             }
             if (elapsed > 5000) {
                 timeSinceLastUpdate = System.currentTimeMillis()
