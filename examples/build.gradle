@@ -13,7 +13,7 @@ def coreWar = project(":core").tasks['war']
 
 dependencies {
     testCompile(project(':core'))
-    }
+}
 
 task copyJetty (type: Copy) {
     description "Copy Jetty and GeoServer into a directory that we can zip as a distribution bundle or use for jettyRun"
@@ -42,20 +42,20 @@ task addGeoserverLoggingFile {
     doLast {
         logger.lifecycle("Writing an updated Geoserver log configuration to suppress geoserver output")
 
-    def offLoggingConfig = new File(geoserverDataDir, "logs/OFF_LOGGING.properties")
+        def offLoggingConfig = new File(geoserverDataDir, "logs/OFF_LOGGING.properties")
         offLoggingConfig.parentFile.mkdirs()
         def loggingXml = new File(geoserverDataDir, "logging.xml")
         loggingXml.parentFile.mkdirs()
 
         loggingXml.withWriter "UTF-8", { writer ->
-        def builder = new groovy.xml.MarkupBuilder(writer)
-        builder.logging {
-            level "OFF_LOGGING.properties"
-            location "${geoserverDir}/geoserver.log"
-            stdOutLogging "false"
+            def builder = new groovy.xml.MarkupBuilder(writer)
+            builder.logging {
+                level "OFF_LOGGING.properties"
+                location "${geoserverDir}/geoserver.log"
+                stdOutLogging "false"
+            }
         }
-    }
-    offLoggingConfig.setText("log4j.debug=FALSE\nlog4j.rootLogger=OFF", "UTF-8")
+        offLoggingConfig.setText("log4j.debug=FALSE\nlog4j.rootLogger=OFF", "UTF-8")
     }
 }
 
@@ -65,12 +65,12 @@ task copyMapfishPrint (type: Copy) {
 
     from zipTree(coreWar.archivePath)
     into ("$jettyOut/webapps/mapfish-print")
-            }
+}
 
 
 task buildServer {
     dependsOn copyGeoserverFiles, copyMapfishPrint, addGeoserverLoggingFile
-                            }
+}
 
 task buildZip(type: Zip) {
     dependsOn buildServer
@@ -82,8 +82,8 @@ task buildZip(type: Zip) {
     def folder = "$baseName-$version"
     into (folder) {
         from "$jettyOut"
-                        }
-                    }
+    }
+}
 
 build.dependsOn buildZip
 
@@ -104,18 +104,17 @@ task jettyRun (type: JavaExec) {
         debug = "true"
     } else {
         debugPort = 5005
-                }
+    }
 
     if ("true" == debug || "" == debug) {
         jvmArgs "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=$debugPort"
-            }
-        }
+    }
+}
 
 test {
     dependsOn ':core:compileJava', 'testClasses'
     description 'Runs all automated e2e (integration) tests.'
     maxParallelForks = Runtime.getRuntime().availableProcessors();
-//    exclude interactiveExpression
 
     java.lang.Process process = null
     doFirst {
@@ -126,14 +125,13 @@ test {
         def builder = new ProcessBuilder(cmd)
         builder.directory(jettyRun.workingDir)
 
-
         logger.lifecycle("Starting test server: " + cmd.join(" ") + " in directory: " + jettyRun.workingDir)
         process = builder.start()
         process.consumeProcessOutput(System.out, System.err)
         addShutdownHook {
             if (process != null) {
                 process.destroy();
-    }
+            }
         }
 
         def mapfishPrint = new URL("http://localhost:8080/mapfish-print/print/capabilities.json")
@@ -145,17 +143,17 @@ test {
                 connection.connect()
                 if (connection.responseCode == 200) {
                     return true
-        }
+                }
             } catch (IOException e) {
                 // continue
             } finally {
                 if (connection != null) {
                     connection.disconnect()
-    }
-}
+                }
+            }
 
             return false
-}
+        }
         def startTime = System.currentTimeMillis();
         def timeSinceLastUpdate = System.currentTimeMillis()
         while (!isRunning(mapfishPrint) && !isRunning(geoserver)) {
